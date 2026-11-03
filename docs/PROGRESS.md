@@ -22,4 +22,10 @@ WebKit의 Canvas WebP 인코딩은 PNG로 대체되므로 Worker에서 WASM 인�
 
 ## 남은 작업
 
-원격 푸시와 Cloudflare 프로덕션 배포는 사용자 승인, 계정 토큰 및 배포 URL 설정 후 진행한다. 실제 도메인의 응답과 검색 노출은 공개 배포 후 검증한다. PDF, ZIP, 조건 분기, 병렬 실행, 고급 디버거 및 공개 템플릿 공유는 후속 범위로 관리한다.
+원격 푸시와 Cloudflare 프로덕션 배포는 사용자 승인, 계정 토큰 및 배포 URL 설정 후 진행한다. 실제 도메인의 응답과 검색 노출은 공개 배포 후 검증한다.
+
+## 후속 단계
+
+PDF 병합·페이지 추출, 다중 파일 입력과 ZIP 압축·해제, 텍스트 조건 분기, 동시 실행 1–4개, 진단 타임라인·필터·JSON, 공유 링크 열기·복제를 구현했다. 기존 버전 1 정의는 필드 추가 없이 그대로 연다. 앱에는 도구 21개가 있다. 단위·통합 32건과 Chromium·Firefox·WebKit E2E 및 접근성 40건을 통과했다. npm 보안 감사 결과는 0건이다. Cloudflare 정적 빌드의 dry run과 로컬 SPA·보안 헤더 검사도 통과했다.
+
+GitHub 원격 저장소의 쓰기 권한을 읽기 전용으로 확인했다. GitHub production 환경과 Cloudflare Wrangler 인증은 현재 확인되지 않는다. 원격 릴리스와 운영 검증은 [릴리스 계획](exec_plans/active/plan-003-release.md)에 남긴다.

@@ -9,3 +9,5 @@ Node.js 24에서 `npm ci`, `npm run qa`를 실행한다. Cloudflare Workers Stat
 [Cloudflare SPA routing](https://developers.cloudflare.com/workers/static-assets/routing/single-page-application/)
 
 정적 자산 smoke가 통과하면 배포 URL에서 Chromium으로 도구 검색, 텍스트 변환 및 다운로드를 확인한다. 로컬 검증에 사용한 `https://toolchain.example`은 sitemap 생성 검사용 값이다. 실제 배포 시에는 승인된 서비스 도메인을 설정한다.
+
+수동 배포도 가능하다. 승인된 계정으로 `npx wrangler login`을 실행하고, Workers 운영 URL을 확인해 `SITE_URL`을 지정한 프로덕션 빌드를 만든다. 배포 승인 후 `npx wrangler deploy`, `node scripts/smoke.mjs "$SITE_URL"` 순으로 실행한다. 마지막으로 `PLAYWRIGHT_BASE_URL="$SITE_URL" npm run e2e -- --project=chromium`으로 공개 주소의 실제 동작을 검증한다.

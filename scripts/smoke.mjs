@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict'
 const site = new URL(process.argv[2])
-for (const path of ['/', '/tools/json.format', '/editor']) {
+for (const path of [
+  '/',
+  '/tools/json.format',
+  '/tools/pdf.merge',
+  '/editor',
+  '/templates/shared',
+]) {
   const response = await fetch(new URL(path, site), {
     headers: { 'Sec-Fetch-Mode': 'navigate', Accept: 'text/html' },
   })
@@ -23,6 +29,7 @@ for (const path of ['/', '/tools/json.format', '/editor']) {
 for (const [path, body] of [
   ['/robots.txt', 'User-agent:'],
   ['/sitemap.xml', '<urlset'],
+  ['/document-tool-licenses.txt', 'pdf-lib/LICENSE.md'],
 ]) {
   const response = await fetch(new URL(path, site))
   assert.equal(response.status, 200)

@@ -11,3 +11,12 @@
 - 첫 보안 감사에서 확인한 개발용 `glob` 및 `minimatch` 권고는 검증된 수정 버전으로 잠갔다. 사용 중인 최상위 도구가 수정 버전을 요구하도록 갱신되면 해당 오버라이드를 재검토한다.
 
 [jSquash upstream](https://github.com/jamsinclair/jSquash/blob/main/README.md)
+
+## 후속 도구
+
+`pdf-lib` 1.17.1과 `fflate` 0.8.3은 npm 공개 메타데이터 기준 MIT 라이선스다. PDF의 페이지 복사 API와 ZIP의 압축 해제 필터를 사용한다. 각각 동적 import로 해당 Worker 작업에서만 로드하며, 빌드가 도구와 관련 의존성의 라이선스를 함께 제공한다. PDF는 브라우저 기본 API로 페이지를 재구성하기 어렵고, fflate의 크기·경로 필터는 ZIP을 읽기 전에 제한을 적용하는 데 필요하다.
+
+공개 템플릿은 읽기 가능한 링크로 제공한다. 링크는 정의와 도구 설정을 포함하며, 서버형 검색 목록은 도입하지 않는다. 이 방식은 런타임 입력과 실행 결과를 브라우저 메모리에 두는 기존 정책을 유지한다.
+
+- [PDFDocument API](https://pdf-lib.js.org/docs/api/classes/pdfdocument)
+- [fflate upstream](https://github.com/101arrowz/fflate)
