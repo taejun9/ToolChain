@@ -1,0 +1,29 @@
+name: Deploy
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  production:
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    runs-on: ubuntu-latest
+    env:
+      SITE_URL: ${{ vars.SITE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: node -e 'if (!process.env.SITE_URL) throw new Error("Set the production SITE_URL variable")'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run typecheck && npm run lint && npm test && npm run build && npm run e2e -- --project=chromium
+      - run: npx wrangler deploy
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - run: node scripts/smoke.mjs "$SITE_URL"
+      - run: npm run e2e -- --project=chromium --grep 'search, run a Quick Tool'
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ vars.SITE_URL }}
