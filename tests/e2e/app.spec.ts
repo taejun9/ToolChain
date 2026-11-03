@@ -16,6 +16,13 @@ test('search, run a Quick Tool, favorite it and see the result', async ({
   await page.getByRole('link', { name: /Text Replace/ }).click()
   await expect(page).toHaveTitle('Text Replace | ToolChain')
   await page.getByRole('button', { name: 'Add to favorites' }).click()
+  await expect(
+    page.getByRole('button', { name: 'Remove from favorites' }),
+  ).toBeEnabled()
+  await page.reload()
+  await expect(
+    page.getByRole('button', { name: 'Remove from favorites' }),
+  ).toBeEnabled()
   await page.getByLabel('Input · text').fill('an old idea')
   await page.getByRole('button', { name: 'Run', exact: true }).click()
   await expect(page.locator('.result pre')).toHaveText('an new idea')

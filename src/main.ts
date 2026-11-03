@@ -45,4 +45,4 @@ useSettings(pinia)
   .catch(() => {
     /* Settings UI can report subsequent storage failures. */
   })
-app.mount('#app')
+  .finally(() => app.mount('#app'))

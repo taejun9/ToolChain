@@ -34,6 +34,7 @@ const controller = shallowRef<AbortController>()
 const error = ref('')
 const status = ref('')
 const notice = ref('')
+const savingFavorite = ref(false)
 const starred = computed(() => settings.favorites.includes(props.id))
 const related = tool
   ? registry
@@ -71,11 +72,15 @@ onMounted(() => {
 })
 onBeforeUnmount(() => controller.value?.abort())
 async function favorite() {
+  if (savingFavorite.value) return
+  savingFavorite.value = true
   try {
     await settings.favorite(props.id)
     notice.value = ''
   } catch {
     notice.value = 'storage'
+  } finally {
+    savingFavorite.value = false
   }
 }
 async function execute() {
@@ -136,7 +141,12 @@ async function execute() {
         <h1>{{ t(tool.name) }}</h1>
         <p>{{ t(tool.description) }}</p>
       </div>
-      <button type="button" :aria-pressed="starred" @click="favorite">
+      <button
+        type="button"
+        :aria-pressed="starred"
+        :disabled="savingFavorite"
+        @click="favorite"
+      >
         <Star :size="17" aria-hidden="true" />{{
           t(starred ? 'unfavorite' : 'favorite')
         }}
