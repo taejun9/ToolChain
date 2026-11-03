@@ -39,6 +39,8 @@ import ConfigFields from '../components/ConfigFields.vue'
 import ValueInput from '../components/ValueInput.vue'
 import Results from '../components/Results.vue'
 import { makeTemplate } from './templates'
+import { openShared } from './sharing'
+import { download } from '../utils'
 import { rulesParser } from './generator'
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/core/dist/theme-default.css'
@@ -47,6 +49,12 @@ const { t, describeError } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const workflow = ref<Workflow>(newWorkflow(t('untitled')))
+const parallelism = computed({
+  get: () => workflow.value.parallelism ?? 1,
+  set: (value: number) => {
+    workflow.value.parallelism = value
+  },
+})
 const selected = ref('')
 const source = ref('')
 const target = ref('')
@@ -96,7 +104,7 @@ const nodeOrder = computed(() => {
 const progress = computed(
   () =>
     Object.values(logs.value).filter((log) =>
-      ['success', 'error', 'cancelled'].includes(log.status),
+      ['success', 'error', 'cancelled', 'skipped'].includes(log.status),
     ).length,
 )
 const portOptions = (direction: 'inputs' | 'outputs') =>
@@ -139,7 +147,13 @@ onMounted(async () => {
   const id = typeof route.query.id === 'string' ? route.query.id : ''
   const template =
     typeof route.query.template === 'string' ? route.query.template : ''
-  if (id) {
+  if (route.hash.startsWith('#w=')) {
+    try {
+      resetDraft(openShared(route.hash))
+    } catch (cause) {
+      error.value = errorCode(cause)
+    }
+  } else if (id) {
     busy.value = true
     try {
       const saved = await db.workflows.get(id)
@@ -299,13 +313,46 @@ async function save() {
     await db.workflows.put(parsed.data)
     workflow.value.updatedAt = parsed.data.updatedAt
     notice.value = 'saved'
-    await router.replace({ query: { id: parsed.data.id } })
+    await router.replace({ query: { id: parsed.data.id }, hash: '' })
   } catch {
     error.value = 'storage'
   } finally {
     busy.value = false
   }
 }
+function exportLog() {
+  const entries = Object.values(logs.value).map((log) => ({
+    ...log,
+    toolId: workflow.value.nodes.find((node) => node.id === log.nodeId)?.toolId,
+  }))
+  download(
+    new Blob([JSON.stringify(entries, null, 2)], { type: 'application/json' }),
+    'toolchain-run.json',
+  )
+}
+const logFilter = ref('all')
+const timelineEnd = computed(() =>
+  Math.max(
+    1,
+    ...Object.values(logs.value).map(
+      (log) => (log.startedAt ?? 0) + (log.ms ?? 0),
+    ),
+  ),
+)
+function timelineStyle(log: Log) {
+  return {
+    insetInlineStart: ((log.startedAt ?? 0) / timelineEnd.value) * 100 + '%',
+    width: ((log.ms ?? 0) / timelineEnd.value) * 100 + '%',
+  }
+}
+const filteredLogs = computed(() =>
+  Object.values(logs.value).filter(
+    (log) =>
+      logFilter.value === 'all' ||
+      (logFilter.value === 'issues' && !!log.error) ||
+      log.status === logFilter.value,
+  ),
+)
 async function execute() {
   if (busy.value || controller.value) return
   resetRun()
@@ -370,6 +417,15 @@ async function execute() {
           :disabled="busy || !!controller"
           maxlength="120"
       /></label>
+      <label>
+        <span>{{ t('parallelism') }}</span>
+        <select v-model.number="parallelism" :disabled="busy || !!controller">
+          <option :value="1">1</option>
+          <option :value="2">2</option>
+          <option :value="3">3</option>
+          <option :value="4">4</option>
+        </select>
+      </label>
       <div class="actions">
         <button
           class="primary"
@@ -587,17 +643,36 @@ async function execute() {
     </div>
     <section class="panel run-panel">
       <h2>{{ t('logs') }}</h2>
+      <div v-if="Object.keys(logs).length" class="actions">
+        <label
+          ><span>{{ t('log-filter') }}</span>
+          <select v-model="logFilter">
+            <option
+              v-for="filter in [
+                'all',
+                'issues',
+                'success',
+                'skipped',
+                'cancelled',
+              ]"
+              :key="filter"
+              :value="filter"
+            >
+              {{ t(filter) }}
+            </option>
+          </select>
+        </label>
+        <button type="button" :disabled="!!controller" @click="exportLog">
+          {{ t('export-log') }}
+        </button>
+      </div>
       <label v-if="controller || status"
         >{{ t('progress') }} {{ progress }}/{{ workflow.nodes.length
         }}<progress :value="progress" :max="workflow.nodes.length"
       /></label>
       <p v-if="status" role="status">{{ t(status) }}</p>
       <ul class="stack">
-        <li
-          v-for="log in Object.values(logs)"
-          :key="log.nodeId"
-          class="log-item"
-        >
+        <li v-for="log in filteredLogs" :key="log.nodeId" class="log-item">
           <button
             type="button"
             :aria-pressed="selected === log.nodeId"
@@ -606,6 +681,9 @@ async function execute() {
             {{ nodeLabel(log.nodeId) }}
           </button>
           <span>{{ t(log.status) }}</span>
+          <span v-if="log.startedAt !== undefined"
+            >+{{ log.startedAt.toFixed(1) }} ms</span
+          >
           <span v-if="log.ms !== undefined">{{ log.ms.toFixed(1) }} ms</span>
           <span v-if="log.inputs || log.outputs"
             >{{ log.inputs?.join(', ') || '∅' }} →
@@ -614,6 +692,16 @@ async function execute() {
           <span v-if="log.bytes !== undefined"
             >{{ log.bytes }} {{ t('bytes') }}</span
           >
+          <span
+            v-if="log.ms !== undefined"
+            class="run-timeline"
+            aria-hidden="true"
+          >
+            <span
+              :class="{ 'run-timeline-error': log.status === 'error' }"
+              :style="timelineStyle(log)"
+            />
+          </span>
           <span v-if="log.error" class="error">{{
             describeError(log.error)
           }}</span>

@@ -505,3 +505,22 @@ progress {
 .config-field.check {
   display: flex;
 }
+
+.run-timeline {
+  position: relative;
+  flex: 1 0 100%;
+  overflow: hidden;
+  height: 0.45rem;
+  background: var(--soft);
+  border-radius: 1rem;
+}
+.run-timeline > span {
+  position: absolute;
+  min-width: 0.2rem;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+.run-timeline > .run-timeline-error {
+  background: var(--danger);
+}

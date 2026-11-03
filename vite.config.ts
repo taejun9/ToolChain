@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { dirname, resolve } from 'node:path'
 import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import tailwind from '@tailwindcss/vite'
@@ -25,6 +26,27 @@ export default defineConfig({
           type: 'asset',
           fileName: 'webp-licenses.txt',
           source: license,
+        })
+        const documentLicenses = [
+          'pdf-lib/LICENSE.md',
+          'fflate/LICENSE',
+          '@pdf-lib/standard-fonts/LICENSE.md',
+          '@pdf-lib/upng/LICENSE',
+          'pako/LICENSE',
+          'tslib/LICENSE.txt',
+        ]
+          .map((path) => {
+            const licensePath =
+              path === 'fflate/LICENSE'
+                ? resolve(dirname(resolvePackage('fflate')), '../LICENSE')
+                : resolvePackage(path)
+            return path + '\n' + readFileSync(licensePath, 'utf8')
+          })
+          .join('\n\n')
+        this.emitFile({
+          type: 'asset',
+          fileName: 'document-tool-licenses.txt',
+          source: documentLicenses,
         })
         const configured = process.env.SITE_URL
         const site = configured ? new URL(configured) : null
@@ -66,7 +88,7 @@ export default defineConfig({
           type: 'asset',
           fileName: 'robots.txt',
           source:
-            'User-agent: *\nDisallow: /editor\nDisallow: /workflows\nDisallow: /settings\n' +
+            'User-agent: *\nDisallow: /editor\nDisallow: /workflows\nDisallow: /settings\nDisallow: /templates/shared\n' +
             (site
               ? 'Sitemap: ' + new URL('/sitemap.xml', site).href + '\n'
               : ''),

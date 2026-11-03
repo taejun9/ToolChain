@@ -103,7 +103,11 @@ function matches(value: unknown, type: DataType): boolean {
         )
       )
     case 'file-list':
-      return Array.isArray(value) && value.every((file) => file instanceof Blob)
+      return (
+        Array.isArray(value) &&
+        value.length > 0 &&
+        value.every((file) => file instanceof Blob)
+      )
     case 'image':
       return (
         value instanceof Blob &&
@@ -123,6 +127,10 @@ function validatePorts(ports: Port[], values: Values, code: string) {
     if (!matches(value, port.type)) throw new ToolError(code)
     if (
       (value instanceof Blob && value.size > 40 * 1024 * 1024) ||
+      (port.type === 'file-list' &&
+        ((value as Blob[]).length > 100 ||
+          (value as Blob[]).reduce((sum, file) => sum + file.size, 0) >
+            40 * 1024 * 1024)) ||
       (typeof value === 'string' && value.length > 5_000_000)
     )
       throw new ToolError('too-large')

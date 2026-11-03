@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  shallowReactive,
+  shallowRef,
+} from 'vue'
 import { Play, Star } from '@lucide/vue'
 import ConfigFields from '../components/ConfigFields.vue'
 import ValueInput from '../components/ValueInput.vue'
@@ -14,7 +21,7 @@ const props = defineProps<{ id: string }>()
 const { t, describeError } = useI18n()
 const settings = useSettings()
 const tool = registry.list().find((item) => item.id === props.id)
-const inputs = ref<Values>(
+const inputs = shallowReactive<Values>(
   Object.fromEntries(
     (tool?.inputs ?? [])
       .filter((port) => port.type === 'text')
@@ -34,6 +41,13 @@ const related = tool
       .filter((item) => item.category === tool.category && item.id !== tool.id)
   : []
 const examples: Record<string, [string, string]> = {
+  'input.files': ['one.txt, two.txt', 'one.txt, two.txt'],
+  'input.pdf': ['book.pdf', 'book.pdf'],
+  'pdf.merge': ['chapter1.pdf, chapter2.pdf', 'merged.pdf'],
+  'pdf.extract': ['book.pdf · 1–1', 'pages.pdf'],
+  'zip.pack': ['one.txt, two.txt', 'archive.zip'],
+  'zip.unpack': ['archive.zip', 'one.txt, two.txt'],
+  'flow.condition': ['yes', 'match → yes'],
   'input.text': ['hello', 'hello'],
   'text.replace': ['old idea', 'new idea'],
   'text.split': ['a,b,c', '["a","b","c"]'],
@@ -72,7 +86,7 @@ async function execute() {
   status.value = ''
   result.value = undefined
   try {
-    const values = { ...inputs.value }
+    const values = { ...inputs }
     for (const port of tool.inputs) {
       const value = values[port.id]
       if (typeof value === 'string' && value.length > 5_000_000)

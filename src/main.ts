@@ -22,6 +22,10 @@ const router = createRouter({
     },
     { path: '/editor', component: () => import('./features/Editor.vue') },
     {
+      path: '/templates/shared',
+      component: () => import('./features/SharedTemplate.vue'),
+    },
+    {
       path: '/templates/:id?',
       component: () => import('./features/Templates.vue'),
       props: true,

@@ -240,7 +240,99 @@ const messages: Record<string, [string, string]> = {
     '실행 전에 노드를 하나 이상 추가하세요.',
   ],
 }
+Object.assign(messages, {
+  'cat.pdf': ['PDF', 'PDF'],
+  'cat.zip': ['ZIP', 'ZIP'],
+  'cat.flow': ['Control flow', '제어 흐름'],
+  'field.first': ['First page', '시작 페이지'],
+  'field.last': ['Last page', '마지막 페이지'],
+  'field.match': ['Match text', '비교할 텍스트'],
+  'field.mode': ['Comparison', '비교 방식'],
+  parallelism: ['Concurrent steps', '동시 실행 노드 수'],
+  skipped: ['Skipped', '건너뜀'],
+  issues: ['Issues', '문제'],
+  'log-filter': ['Filter logs', '로그 필터'],
+  'export-log': ['Export run log', '실행 로그 내보내기'],
+  share: ['Share template', '템플릿 공유'],
+  'shared-template': ['Shared template', '공유 템플릿'],
+  'share-link': ['Share link', '공유 링크'],
+  'share-warning': [
+    'Anyone with this link can read the workflow settings. Runtime inputs are excluded.',
+    '링크를 받은 사람은 워크플로 설정을 읽을 수 있습니다. 실행 입력은 링크에 포함되지 않습니다.',
+  ],
+  'share-review': [
+    'Review the steps and settings before you run this workflow.',
+    '실행 전에 워크플로 단계와 설정을 확인하세요.',
+  ],
+  'error.share-too-large': [
+    'This workflow is too large for a link. Export its JSON instead.',
+    '링크로 공유하기에 너무 큽니다. JSON으로 내보내세요.',
+  ],
+  'error.branch-skipped': [
+    'The condition did not select this branch.',
+    '조건이 이 경로를 선택하지 않았습니다.',
+  ],
+  'error.invalid-pdf': [
+    'Choose a valid, unencrypted PDF.',
+    '유효하고 암호화되지 않은 PDF를 선택하세요.',
+  ],
+  'error.page-range': [
+    'Choose a valid one-based page range.',
+    '1부터 시작하는 유효한 페이지 범위를 입력하세요.',
+  ],
+  'error.invalid-zip': [
+    'Choose a valid, nonempty ZIP archive.',
+    '유효하고 비어 있지 않은 ZIP을 선택하세요.',
+  ],
+  'error.archive-name': [
+    'Check for duplicate filenames or unsafe archive paths.',
+    '중복 파일 이름이나 안전하지 않은 압축 경로를 확인하세요.',
+  ],
+})
+
 const toolNames: Record<string, [string, string, string, string]> = {
+  'input.files': [
+    'Multiple File Input',
+    '여러 파일 입력',
+    'Select files for batch processing.',
+    '일괄 처리할 파일을 선택합니다.',
+  ],
+  'input.pdf': [
+    'PDF Input',
+    'PDF 입력',
+    'Select a local PDF.',
+    '로컬 PDF를 선택합니다.',
+  ],
+  'pdf.merge': [
+    'PDF Merge',
+    'PDF 병합',
+    'Combine pages from multiple PDFs in file order.',
+    '선택한 PDF의 페이지를 파일 순서대로 합칩니다.',
+  ],
+  'pdf.extract': [
+    'PDF Extract Pages',
+    'PDF 페이지 추출',
+    'Save an inclusive page range as a new PDF.',
+    '지정한 페이지 범위를 새 PDF로 저장합니다.',
+  ],
+  'zip.pack': [
+    'ZIP Pack',
+    'ZIP 압축',
+    'Compress multiple local files into a ZIP.',
+    '여러 로컬 파일을 ZIP으로 압축합니다.',
+  ],
+  'zip.unpack': [
+    'ZIP Extract',
+    'ZIP 압축 풀기',
+    'Extract and download individual archive entries.',
+    '압축을 풀고 파일을 개별 다운로드합니다.',
+  ],
+  'flow.condition': [
+    'Text Condition',
+    '텍스트 조건',
+    'Route text to one of two ports based on a comparison.',
+    '텍스트 비교 결과에 따라 두 포트 중 하나로 전달합니다.',
+  ],
   'input.text': [
     'Text Input',
     '텍스트 입력',

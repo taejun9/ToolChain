@@ -10,7 +10,11 @@ self.onmessage = async ({
     const { id, inputs, config } = data
     const values = id.startsWith('image.')
       ? { image: await transformImage(inputs.image as Blob, config) }
-      : await dataOperation(id, inputs, config)
+      : id.startsWith('pdf.') || id.startsWith('zip.')
+        ? await (
+            await import('../tools/documents')
+          ).documentOperation(id, inputs, config)
+        : await dataOperation(id, inputs, config)
     self.postMessage({ values })
   } catch (error) {
     self.postMessage({ error: errorCode(error) })

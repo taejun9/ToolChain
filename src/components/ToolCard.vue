@@ -16,6 +16,9 @@ const { t } = useI18n()
 const icons = {
   json: Braces,
   file: File,
+  pdf: File,
+  zip: File,
+  flow: Braces,
   image: Image,
   text: Type,
   csv: Table,

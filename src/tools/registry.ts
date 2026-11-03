@@ -39,6 +39,10 @@ async function process(
       const { transformImage } = await import('./image.ts')
       return { image: await transformImage(inputs.image as Blob, config) }
     }
+    if (id.startsWith('pdf.') || id.startsWith('zip.')) {
+      const { documentOperation } = await import('./documents.ts')
+      return documentOperation(id, inputs, config)
+    }
     const { dataOperation } = await import('./operations.ts')
     return dataOperation(id, inputs, config)
   }
@@ -273,6 +277,97 @@ registry.register(
           ? new File([blob], config.filename, { type: blob.type })
           : blob,
       }
+    },
+  }),
+)
+
+const files = port('files', 'file-list')
+const pdf = port('pdf', 'pdf')
+registry.register(
+  defineTool({
+    id: 'input.files',
+    inputs: [port('files', 'file-list', true)],
+    outputs: [files],
+    configSchema: empty,
+    defaults: {},
+    fields: [],
+    errors: ['missing-input'],
+    execute: (_, inputs) => {
+      if (!Array.isArray(inputs.files) || !inputs.files.length)
+        throw new ToolError('missing-input')
+      return { files: inputs.files }
+    },
+  }),
+)
+registry.register(
+  defineTool({
+    id: 'input.pdf',
+    inputs: [port('pdf', 'pdf', true)],
+    outputs: [pdf],
+    configSchema: empty,
+    defaults: {},
+    fields: [],
+    errors: ['missing-input', 'invalid-pdf'],
+    async execute(_, inputs) {
+      if (!(inputs.pdf instanceof Blob)) throw new ToolError('missing-input')
+      const { verifyPdf } = await import('./documents.ts')
+      await verifyPdf(inputs.pdf)
+      return { pdf: inputs.pdf }
+    },
+  }),
+)
+operation(
+  'pdf.merge',
+  [files],
+  [pdf],
+  empty,
+  {},
+  [],
+  ['invalid-pdf', 'page-range'],
+)
+operation(
+  'pdf.extract',
+  [pdf],
+  [pdf],
+  z.strictObject({
+    first: z.number().int().min(1),
+    last: z.number().int().min(1),
+  }),
+  { first: 1, last: 1 },
+  [field('first', 'number'), field('last', 'number')],
+  ['invalid-pdf', 'page-range'],
+)
+operation('zip.pack', [files], [file], empty, {}, [], ['archive-name'])
+operation(
+  'zip.unpack',
+  [file],
+  [files],
+  empty,
+  {},
+  [],
+  ['invalid-zip', 'archive-name'],
+)
+registry.register(
+  defineTool({
+    id: 'flow.condition',
+    inputs: [text],
+    outputs: [port('match', 'text', true), port('otherwise', 'text', true)],
+    configSchema: z.strictObject({
+      match: z.string().max(1000),
+      mode: z.enum(['contains', 'equals']),
+    }),
+    defaults: { match: 'yes', mode: 'contains' },
+    fields: [
+      field('match', 'text'),
+      field('mode', 'select', ['contains', 'equals']),
+    ],
+    execute: (_, inputs, config) => {
+      const value = inputs.text as string
+      const matches =
+        config.mode === 'equals'
+          ? value === config.match
+          : value.includes(config.match)
+      return { [matches ? 'match' : 'otherwise']: value }
     },
   }),
 )

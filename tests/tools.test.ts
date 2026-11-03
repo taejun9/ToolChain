@@ -22,8 +22,8 @@ const png = new File(
 afterEach(() => vi.unstubAllGlobals())
 
 describe('registry', () => {
-  it('registers 14 unique versioned tools and searches localized terms', () => {
-    expect(registry.list()).toHaveLength(14)
+  it('registers 21 unique versioned tools and searches localized terms', () => {
+    expect(registry.list()).toHaveLength(21)
     expect(registry.list('image')).toHaveLength(2)
     expect(
       registry

@@ -23,6 +23,7 @@ export const workflowSchema = z.strictObject({
   name: z.string().trim().min(1).max(120),
   description: z.string().max(1000).optional(),
   schemaVersion: z.literal(1),
+  parallelism: z.number().int().min(1).max(4).optional(),
   nodes: z.array(nodeSchema).max(100),
   edges: z.array(edgeSchema).max(400),
   createdAt: z.iso.datetime(),
@@ -47,6 +48,9 @@ export function newWorkflow(name: string): Workflow {
 }
 
 export function plan(workflow: Workflow, registry: Registry, complete = true) {
+  const parallelism = workflow.parallelism ?? 1
+  if (!Number.isInteger(parallelism) || parallelism < 1 || parallelism > 4)
+    throw new ToolError('invalid-config')
   const nodes = new Map(workflow.nodes.map((node) => [node.id, node]))
   if (
     nodes.size !== workflow.nodes.length ||
@@ -107,7 +111,7 @@ export function plan(workflow: Workflow, registry: Registry, complete = true) {
           throw new NodeError('missing-input', node.id)
       }
     }
-  return { order, incoming }
+  return { order, incoming, parallelism }
 }
 
 export class NodeError extends ToolError {
@@ -137,11 +141,12 @@ export function parseWorkflow(text: string, registry: Registry): Workflow {
 }
 
 export type Status =
-  'idle' | 'queued' | 'running' | 'success' | 'error' | 'cancelled'
+  'idle' | 'queued' | 'running' | 'success' | 'error' | 'cancelled' | 'skipped'
 export type Log = {
   nodeId: string
   status: Status
   ms?: number
+  startedAt?: number
   error?: string
   inputs?: string[]
   outputs?: string[]
@@ -149,6 +154,12 @@ export type Log = {
 }
 
 export function sizeOf(value: unknown) {
+  if (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((item) => item instanceof Blob)
+  )
+    return value.reduce((bytes, file) => bytes + file.size, 0)
   return value instanceof Blob
     ? value.size
     : new Blob([typeof value === 'string' ? value : JSON.stringify(value)]).size
@@ -161,35 +172,60 @@ export async function runWorkflow(
   signal: AbortSignal,
   report: (log: Log) => void,
 ) {
-  const { order, incoming } = plan(workflow, registry)
+  const { order, incoming, parallelism } = plan(workflow, registry)
   const results = new Map<string, Values>()
-  const blocked = new Set<string>()
+  const failures = new Set<string>()
+  const settled = new Set<string>()
+  const pending = new Set(order)
+  const active = new Set<Promise<void>>()
+  const runStart = performance.now()
   let retained = 0
   for (const node of order) report({ nodeId: node.id, status: 'queued' })
-  for (const node of order) {
+
+  async function execute(node: WorkflowNode) {
     const edges = incoming.get(node.id)!
     if (
       signal.aborted ||
-      edges.some((edge) => blocked.has(edge.sourceNodeId))
+      edges.some((edge) => failures.has(edge.sourceNodeId))
     ) {
-      blocked.add(node.id)
+      failures.add(node.id)
       report({
         nodeId: node.id,
         status: 'cancelled',
         error: signal.aborted ? undefined : 'upstream',
       })
-      continue
+      return
     }
     const tool = registry.get(node.toolId, node.toolVersion)
+    const inputs: Values = { ...runtime[node.id] }
+    const inactive = edges.filter((edge) => {
+      const output = results.get(edge.sourceNodeId)
+      return (
+        !output ||
+        !Object.hasOwn(output, edge.sourcePortId) ||
+        output[edge.sourcePortId] === undefined
+      )
+    })
+    if (
+      (edges.length > 0 && inactive.length === edges.length) ||
+      inactive.some(
+        (edge) =>
+          !tool.inputs.find((port) => port.id === edge.targetPortId)?.optional,
+      )
+    ) {
+      report({ nodeId: node.id, status: 'skipped', error: 'branch-skipped' })
+      return
+    }
+    for (const edge of edges) {
+      const output = results.get(edge.sourceNodeId)
+      if (output && Object.hasOwn(output, edge.sourcePortId))
+        inputs[edge.targetPortId] = output[edge.sourcePortId]
+    }
     const start = performance.now()
-    const inputs = { ...runtime[node.id] }
-    for (const edge of edges)
-      inputs[edge.targetPortId] = results.get(edge.sourceNodeId)?.[
-        edge.sourcePortId
-      ]
     const metadata = {
       inputs: tool.inputs.map((port) => port.type),
       outputs: tool.outputs.map((port) => port.type),
+      startedAt: start - runStart,
     }
     report({ nodeId: node.id, status: 'running', ...metadata })
     try {
@@ -215,7 +251,7 @@ export async function runWorkflow(
         ...metadata,
       })
     } catch (error) {
-      blocked.add(node.id)
+      failures.add(node.id)
       report({
         nodeId: node.id,
         status: signal.aborted ? 'cancelled' : 'error',
@@ -224,6 +260,23 @@ export async function runWorkflow(
         ...metadata,
       })
     }
+  }
+
+  while (pending.size || active.size) {
+    for (const node of pending) {
+      if (active.size >= parallelism) break
+      if (
+        !incoming.get(node.id)!.every((edge) => settled.has(edge.sourceNodeId))
+      )
+        continue
+      pending.delete(node)
+      const execution = execute(node).finally(() => {
+        settled.add(node.id)
+        active.delete(execution)
+      })
+      active.add(execution)
+    }
+    if (active.size) await Promise.race(active)
   }
   return results
 }

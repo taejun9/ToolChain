@@ -1,10 +1,19 @@
 <script setup lang="ts">
 import type { Port } from '../core/tool'
 const props = defineProps<{ port: Port; label: string; value?: unknown }>()
-const fileName = (value: unknown) => (value instanceof File ? value.name : '')
+const fileName = (value: unknown): string =>
+  Array.isArray(value)
+    ? value.map(fileName).join(', ')
+    : value instanceof File
+      ? value.name
+      : ''
 const emit = defineEmits<{ change: [value: unknown] }>()
 function file(event: Event) {
-  emit('change', (event.target as HTMLInputElement).files?.[0])
+  const files = (event.target as HTMLInputElement).files
+  emit(
+    'change',
+    props.port.type === 'file-list' ? Array.from(files ?? []) : files?.[0],
+  )
 }
 </script>
 <template>
@@ -19,10 +28,13 @@ function file(event: Event) {
     <input
       v-else
       type="file"
+      :multiple="port.type === 'file-list'"
       :accept="
         port.type === 'image'
           ? 'image/png,image/jpeg,image/webp,image/gif,image/bmp,image/avif'
-          : undefined
+          : port.type === 'pdf'
+            ? 'application/pdf,.pdf'
+            : undefined
       "
       @change="file"
     />

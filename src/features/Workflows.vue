@@ -4,14 +4,21 @@ import { useI18n } from '../i18n'
 import { db } from '../storage/db'
 import { ToolError } from '../core/tool'
 import {
+  errorCode,
   parseWorkflow,
   uid,
   workflowJsonLimit,
   type Workflow,
 } from '../core/workflow'
 import { registry } from '../tools/registry'
+import { useRouter } from 'vue-router'
+import { shareFragment } from './sharing'
 import { download } from '../utils'
 const { t, describeError } = useI18n()
+const router = useRouter()
+const sharedId = ref('')
+const sharedUrl = ref('')
+const copied = ref(false)
 const items = shallowRef<Workflow[]>([])
 const busy = ref(false)
 const error = ref('')
@@ -72,6 +79,29 @@ function importFile(event: Event) {
       const parsed = parseWorkflow(await file.text(), registry)
       await copy(parsed)
     })
+}
+function share(item: Workflow) {
+  error.value = ''
+  sharedId.value = ''
+  copied.value = false
+  try {
+    const location = router.resolve({
+      path: '/templates/shared',
+      hash: shareFragment(item),
+    })
+    sharedUrl.value = new URL(location.href, window.location.origin).href
+    sharedId.value = item.id
+  } catch (cause) {
+    error.value = errorCode(cause)
+  }
+}
+async function copyShare() {
+  try {
+    await navigator.clipboard.writeText(sharedUrl.value)
+    copied.value = true
+  } catch {
+    error.value = 'processing'
+  }
 }
 function exportFile(item: Workflow) {
   download(
@@ -142,12 +172,22 @@ function exportFile(item: Workflow) {
         >
           {{ t('clone') }}
         </button>
+        <button type="button" @click="share(item)">{{ t('share') }}</button>
         <button type="button" @click="exportFile(item)">
           {{ t('export') }}
         </button>
         <button type="button" :disabled="busy" @click="remove(item)">
           {{ t('delete') }}
         </button>
+      </div>
+      <div v-if="sharedId === item.id" class="stack">
+        <p>{{ t('share-warning') }}</p>
+        <label
+          ><span>{{ t('share-link') }}</span
+          ><input :value="sharedUrl" readonly
+        /></label>
+        <button type="button" @click="copyShare">{{ t('copy') }}</button>
+        <p v-if="copied" role="status">{{ t('copied') }}</p>
       </div>
     </article>
   </section>

@@ -9,6 +9,10 @@ const { t, describeError } = useI18n()
 const urls = ref<Record<string, string>>({})
 const status = ref('')
 const error = ref('')
+const asFiles = (value: unknown) =>
+  Array.isArray(value)
+    ? value.filter((item): item is File => item instanceof File)
+    : []
 const isBlob = (value: unknown) => value instanceof Blob
 function clear() {
   for (const url of Object.values(urls.value)) URL.revokeObjectURL(url)
@@ -76,8 +80,24 @@ function save(value: unknown, port: Port) {
         {{ (values[port.id] as File).name || t('file') }} ·
         {{ (values[port.id] as Blob).size }} {{ t('bytes') }}
       </p>
+      <ul v-else-if="port.type === 'file-list'" class="stack">
+        <li
+          v-for="file in asFiles(values[port.id])"
+          :key="file.name"
+          class="actions"
+        >
+          <span>{{ file.name }} · {{ file.size }} {{ t('bytes') }}</span>
+          <button
+            type="button"
+            :aria-label="t('download') + ' ' + file.name"
+            @click="download(file, file.name)"
+          >
+            {{ t('download') }}
+          </button>
+        </li>
+      </ul>
       <pre v-else>{{ text(values[port.id]).slice(0, 12000) }}</pre>
-      <div class="actions">
+      <div v-if="port.type !== 'file-list'" class="actions">
         <button
           v-if="!isBlob(values[port.id])"
           type="button"
