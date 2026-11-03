@@ -1,0 +1,112 @@
+[
+  {
+    "id": "optimizer",
+    "category": "image",
+    "version": "1.0.0",
+    "name": "template.optimizer",
+    "description": "templateDesc.optimizer",
+    "nodes": [
+      { "tool": "input.image" },
+      { "tool": "image.resize", "config": { "width": 1200 } },
+      {
+        "tool": "image.convert",
+        "config": { "format": "image/webp", "quality": 0.8 }
+      },
+      { "tool": "file.download" }
+    ],
+    "edges": [
+      ["image", "image"],
+      ["image", "image"],
+      ["image", "file"]
+    ]
+  },
+  {
+    "id": "converter",
+    "category": "image",
+    "version": "1.0.0",
+    "name": "template.converter",
+    "description": "templateDesc.converter",
+    "nodes": [
+      { "tool": "input.image" },
+      { "tool": "image.convert" },
+      { "tool": "file.download" }
+    ],
+    "edges": [
+      ["image", "image"],
+      ["image", "file"]
+    ]
+  },
+  {
+    "id": "formatter",
+    "category": "json",
+    "version": "1.0.0",
+    "name": "template.formatter",
+    "description": "templateDesc.formatter",
+    "nodes": [
+      { "tool": "input.text" },
+      { "tool": "json.parse" },
+      { "tool": "json.format" },
+      { "tool": "output.text" }
+    ],
+    "edges": [
+      ["text", "text"],
+      ["json", "json"],
+      ["text", "text"]
+    ]
+  },
+  {
+    "id": "extractor",
+    "category": "json",
+    "version": "1.0.0",
+    "name": "template.extractor",
+    "description": "templateDesc.extractor",
+    "nodes": [
+      { "tool": "input.text" },
+      { "tool": "json.parse" },
+      { "tool": "json.extract" },
+      { "tool": "output.text" }
+    ],
+    "edges": [
+      ["text", "text"],
+      ["json", "json"],
+      ["text", "text"]
+    ]
+  },
+  {
+    "id": "csv",
+    "category": "csv",
+    "version": "1.0.0",
+    "name": "template.csv",
+    "description": "templateDesc.csv",
+    "nodes": [
+      { "tool": "input.text" },
+      { "tool": "csv.parse" },
+      { "tool": "csv.to-json" },
+      { "tool": "output.text" }
+    ],
+    "edges": [
+      ["text", "text"],
+      ["csv", "csv"],
+      ["text", "text"]
+    ]
+  },
+  {
+    "id": "cleaner",
+    "category": "text",
+    "version": "1.0.0",
+    "name": "template.cleaner",
+    "description": "templateDesc.cleaner",
+    "nodes": [
+      { "tool": "input.text" },
+      {
+        "tool": "text.replace",
+        "config": { "find": "  ", "replacement": " ", "all": true }
+      },
+      { "tool": "output.text" }
+    ],
+    "edges": [
+      ["text", "text"],
+      ["text", "text"]
+    ]
+  }
+]
